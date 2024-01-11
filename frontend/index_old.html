@@ -14,18 +14,6 @@
 
     <h1>Garage Management</h1>
 
-    <!-- Form to add a new user -->
-    <h2>Add New User</h2>
-    <form id="addUserForm">
-        <label for="userName">Name:</label>
-        <input type="text" id="userName" name="userName" required>
-        <br>
-        <label for="userEmail">Email:</label>
-        <input type="email" id="userEmail" name="userEmail" required>
-        <br>
-        <button type="button" onclick="addUser()">Add User</button>
-    </form>
-
     <!-- Form to add a new car -->
     <h2>Add New Car</h2>
     <form id="addCarForm" enctype="multipart/form-data">
@@ -38,25 +26,8 @@
         <label for="image">Image:</label>
         <input type="file" id="image" name="image">
         <br>
-        <!-- Select User from existing users -->
-        <label for="userSelect">Select User:</label>
-        <select id="userSelect" name="userSelect" required></select>
-        <br>
         <button type="button" onclick="addCar()">Add Car</button>
     </form>
-
-    <!-- Table to display existing users -->
-    <h2>Existing Users</h2>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-            </tr>
-        </thead>
-        <tbody id="userTableBody"></tbody>
-    </table>
 
     <!-- Table to display existing cars -->
     <h2>Existing Cars</h2>
@@ -67,13 +38,11 @@
                 <th>Color</th>
                 <th>Model</th>
                 <th>Image</th>
-                <th>User</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody id="carTableBody"></tbody>
     </table>
-
     <h2>Update Car</h2>
     <form id="updateCarForm" style="display: none;">
         <label for="updateColor">Color:</label>
@@ -88,76 +57,31 @@
         <button type="button" onclick="submitUpdate()">Update Car</button>
         <button type="button" onclick="cancelUpdate()">Cancel</button>
     </form>
-
     <script>
-        // Function to fetch and display users
-        function fetchUsers() {
-            axios.get('http://localhost:5000/api/users')
-                .then(response => {
-                    const users = response.data.users;
-                    const userTableBody = document.getElementById('userTableBody');
-                    userTableBody.innerHTML = '';
-                    const userSelect = document.getElementById('userSelect');
-                    userSelect.innerHTML = '';
-
-                    users.forEach(user => {
-                        const userRow = document.createElement('tr');
-                        userRow.innerHTML = `
-                        <td>${user.id}</td>
-                        <td>${user.name}</td>
-                        <td>${user.email}</td>
-                    `;
-                        userTableBody.appendChild(userRow);
-
-                        // Populate the user dropdown in the "Add New Car" form
-                        const option = document.createElement('option');
-                        option.value = user.id;
-                        option.text = `${user.name} (${user.email})`;
-                        userSelect.add(option);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error fetching users:', error);
-                });
-        }
-
-        // Function to add a new user
-        function addUser() {
-            const userName = document.getElementById('userName').value;
-            const userEmail = document.getElementById('userEmail').value;
-
-            axios.post('http://localhost:5000/api/users', { name: userName, email: userEmail })
-                .then(response => {
-                    console.log(response.data.message);
-                    // Refresh the user list after adding
-                    fetchUsers();
-                })
-                .catch(error => {
-                    console.error('Error adding user:', error);
-                });
-        }
-
         // Function to fetch and display cars
         function fetchCars() {
             axios.get('http://localhost:5000/api/cars')
                 .then(response => {
                     const cars = response.data.cars;
+                    console.log(cars);
                     const carTableBody = document.getElementById('carTableBody');
                     carTableBody.innerHTML = '';
 
                     cars.forEach(car => {
+                        console.log(car[1]);
                         const row = document.createElement('tr');
                         row.innerHTML = `
                         <td>${car['id']}</td>
                         <td>${car['color']}</td>
                         <td>${car['model']}</td>
                         <td><img src='http://localhost:5000/${car['image'] || 'N/A'}'></td>
-                        <td>${car['user']['name']}</td>
+
                         <td>
                             <button onclick="updateCar(${car['id']})">Update</button>
                             <button onclick="deleteCar(${car['id']})">Delete</button>
                         </td>
                     `;
+                        // console.log(row);
                         carTableBody.appendChild(row);
                     });
                 })
@@ -172,15 +96,12 @@
             const color = document.getElementById('color').value;
             const model = document.getElementById('model').value;
             const imageInput = document.getElementById('image');
-            const userId = document.getElementById('userSelect').value;
 
             const formData = new FormData();
-            formData.append('user_id', userId);  // Use 'user_id' instead of 'user_Id'
             formData.append('color', color);
             formData.append('model', model);
             formData.append('image', imageInput.files[0]);
-            
-            // console.log( formData.entries())
+
             axios.post('http://localhost:5000/api/cars', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
@@ -198,17 +119,19 @@
 
 
         // Function to update a car
+        // Function to update a car
+        let updateCarId = -1
         function updateCar(carId) {
             const updateForm = document.getElementById('updateCarForm');
             updateForm.style.display = 'block';
-
+            console.log(carId);
             // Fetch car details by ID
             axios.get(`http://localhost:5000/api/cars/${carId}`)
                 .then(response => {
                     const car = response.data.car;
 
                     // Populate the update form with existing details
-                    updateCarId = car['id'];
+                    updateCarId = car['id']
 
                     document.getElementById('updateColor').value = car['color'];
                     document.getElementById('updateModel').value = car['model'];
@@ -221,7 +144,7 @@
 
         // Function to submit the update form
         function submitUpdate() {
-            const carId = updateCarId;
+            const carId = updateCarId /* Get car ID from somewhere */
             const color = document.getElementById('updateColor').value;
             const model = document.getElementById('updateModel').value;
             const image = document.getElementById('updateImage').value;
@@ -258,10 +181,7 @@
                 });
         }
 
-        // ... (rest of your existing code) ...
-
-        // Initial fetch of users and cars when the page loads
-        fetchUsers();
+        // Initial fetch of cars when the page loads
         fetchCars();
     </script>
 

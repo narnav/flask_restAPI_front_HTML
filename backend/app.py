@@ -13,11 +13,23 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Car Model
+# app.py
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+
 class Car(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     color = db.Column(db.String(50), nullable=False)
     model = db.Column(db.String(50), nullable=False)
     image = db.Column(db.String(255))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref='cars')
+
+
+
 
 # Create the database tables
 
@@ -66,6 +78,7 @@ def add_car():
 
     color = request.form['color']
     model = request.form['model']
+    user = request.form['user_id']
     image = request.files.get('image', None)
 
     # Validate file type, size, etc., if needed
@@ -74,7 +87,7 @@ def add_car():
     if image:
         image.save(f'uploads/{image.filename}')
 
-    new_car = Car(color=color, model=model, image=image.filename if image else None)
+    new_car = Car(color=color, model=model, image=image.filename if image else None,user_id=user)
     db.session.add(new_car)
     db.session.commit()
 
@@ -106,6 +119,75 @@ def delete_car(car_id):
     db.session.commit()
 
     return jsonify({'message': 'Car deleted successfully'})
+
+
+@app.route('/api/users', methods=['GET'])
+def get_all_users():
+    users = User.query.all()
+    user_list = []
+
+    for user in users:
+        user_data = {
+            'id': user.id,
+            'name': user.name,
+            'email': user.email
+        }
+        user_list.append(user_data)
+
+    return jsonify({'users': user_list})
+
+# ... (existing code) ...
+
+# Function to add a new car
+@app.route('/api/cars11', methods=['POST'])
+def addCar():
+    # Get user details
+    print("-----------------------------------------------------------------------------")
+    user_id = request.json['user_id']
+    # user_id = request.form.get('user_Id')
+    # On the server side
+    user_id = request.form.get('user_id')
+
+    # print(request.json)
+    print(user_id)
+    print("-----------------------------------------------------------------------------")
+    return jsonify({'message': 'Car added successfully'}), 201
+    user = User.query.get(user_id)
+    
+    # Check if the user exists
+    if not user:
+        abort(404, 'User not found')
+    
+    # Add the car to the database
+    color = request.json['color']
+    model = request.json['model']
+    image = request.files.get('image', None)
+
+    # Validate file type, size, etc., if needed
+
+    # Save the image to the server
+    if image:
+        image.save(f'uploads/{image.filename}')
+
+    new_car = Car(color=color, model=model, image=image.filename if image else None, user=user)
+    db.session.add(new_car)
+    db.session.commit()
+
+    return jsonify({'message': 'Car added successfully'}), 201
+
+@app.route('/api/users', methods=['POST'])
+def addUser():
+    name = request.json['name']
+    email = request.json['email']
+
+    new_user = User(name=name, email=email)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({'message': 'User added successfully'}), 201
+
+# ... (existing code) ...
+
 
 if __name__ == '__main__':
     with app.app_context():
