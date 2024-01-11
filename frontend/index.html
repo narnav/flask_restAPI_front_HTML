@@ -61,7 +61,7 @@
         axios.get('http://localhost:5000/api/cars')
             .then(response => {
                 const cars = response.data.cars;
-                
+                console.log(cars);
                 const carTableBody = document.getElementById('carTableBody');
                 carTableBody.innerHTML = '';
 
@@ -69,13 +69,13 @@
                     console.log(car[1]);
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${car[0]}</td>
-                        <td>${car[1]}</td>
-                        <td>${car[2]}</td>
-                        <td>${car[3] || 'N/A'}</td>
+                        <td>${car['id']}</td>
+                        <td>${car['color']}</td>
+                        <td>${car['model']}</td>
+                        <td>${car['image'] || 'N/A'}</td>
                         <td>
-                            <button onclick="updateCar(${car[0]})">Update</button>
-                            <button onclick="deleteCar(${car[0]})">Delete</button>
+                            <button onclick="updateCar(${car['id']})">Update</button>
+                            <button onclick="deleteCar(${car['id']})">Delete</button>
                         </td>
                     `;
                     // console.log(row);
@@ -117,10 +117,11 @@
                 const car = response.data.car;
 
                 // Populate the update form with existing details
-                updateCarId=car[0]
-                document.getElementById('updateColor').value = car[1];
-                document.getElementById('updateModel').value = car[2];
-                document.getElementById('updateImage').value = car[3] || '';
+                updateCarId=car['id']
+
+                document.getElementById('updateColor').value = car['color'];
+                document.getElementById('updateModel').value = car['model'];
+                document.getElementById('updateImage').value = car['image'] || '';
             })
             .catch(error => {
                 console.error('Error fetching car details:', error);

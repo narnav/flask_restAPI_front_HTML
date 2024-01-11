@@ -1,51 +1,40 @@
 # app.py
 
 from flask import Flask, jsonify, request, abort
-import sqlite3
+from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-# SQLite3 Database Configuration
-DATABASE = 'garage.db'
+# Configure Flask-SQLAlchemy
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///garage.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-def create_table():
-    with sqlite3.connect(DATABASE) as connection:
-        cursor = connection.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS cars (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                color TEXT NOT NULL,
-                model TEXT NOT NULL,
-                image TEXT
-            )
-        ''')
-        connection.commit()
+# Car Model
+class Car(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    color = db.Column(db.String(50), nullable=False)
+    model = db.Column(db.String(50), nullable=False)
+    image = db.Column(db.String(255))
 
-# Initialize database table
-create_table()
+# Create the database tables
 
-# Helper function to execute SQL queries
-def query_db(query, args=(), one=False):
-    with sqlite3.connect(DATABASE) as connection:
-        cursor = connection.cursor()
-        cursor.execute(query, args)
-        result = cursor.fetchone() if one else cursor.fetchall()
-        return result
 
 # API Endpoints
 
 @app.route('/api/cars', methods=['GET'])
 def get_all_cars():
-    cars = query_db('SELECT * FROM cars')
-    return jsonify({'cars': cars})
+    cars = Car.query.all()
+    print(cars)
+    return jsonify({'cars': [{'id': car.id, 'color': car.color, 'model': car.model, 'image': car.image} for car in cars]})
 
 @app.route('/api/cars/<int:car_id>', methods=['GET'])
 def get_car_by_id(car_id):
-    car = query_db('SELECT * FROM cars WHERE id = ?', (car_id,), one=True)
+    car = Car.query.get(car_id)
     if car:
-        return jsonify({'car': car})
+        return jsonify({'car': {'id': car.id, 'color': car.color, 'model': car.model, 'image': car.image}})
     else:
         abort(404, 'Car not found')
 
@@ -57,47 +46,41 @@ def add_car():
     color = request.json['color']
     model = request.json['model']
     image = request.json.get('image', None)
-
-    with sqlite3.connect(DATABASE) as connection:
-        cursor = connection.cursor()
-        cursor.execute('INSERT INTO cars (color, model, image) VALUES (?, ?, ?)', (color, model, image))
-        connection.commit()
+    print(color)
+    new_car = Car(color=color, model=model, image=image)
+    db.session.add(new_car)
+    db.session.commit()
 
     return jsonify({'message': 'Car added successfully'}), 201
 
+
 @app.route('/api/cars/<int:car_id>', methods=['PUT'])
 def update_car(car_id):
-    car = query_db('SELECT * FROM cars WHERE id = ?', (car_id,), one=True)
+    car = Car.query.get(car_id)
     if not car:
         abort(404, 'Car not found')
 
     update_data = request.json
-    print(car[0])
-    color = update_data.get('color', car[1])
-    model = update_data.get('model', car[2])
-    image =  update_data.get('image', car[3])
+    car.color = update_data.get('color', car.color)
+    car.model = update_data.get('model', car.model)
+    car.image = update_data.get('image', car.image)
 
-    with sqlite3.connect(DATABASE) as connection:
-        cursor = connection.cursor()
-        cursor.execute('''
-            UPDATE cars SET color = ?, model = ?, image = ? WHERE id = ?
-        ''', (color, model, image, car_id))
-        connection.commit()
+    db.session.commit()
 
     return jsonify({'message': 'Car updated successfully'})
 
 @app.route('/api/cars/<int:car_id>', methods=['DELETE'])
 def delete_car(car_id):
-    car = query_db('SELECT * FROM cars WHERE id = ?', (car_id,), one=True)
+    car = Car.query.get(car_id)
     if not car:
         abort(404, 'Car not found')
 
-    with sqlite3.connect(DATABASE) as connection:
-        cursor = connection.cursor()
-        cursor.execute('DELETE FROM cars WHERE id = ?', (car_id,))
-        connection.commit()
+    db.session.delete(car)
+    db.session.commit()
 
     return jsonify({'message': 'Car deleted successfully'})
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
