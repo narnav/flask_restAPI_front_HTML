@@ -1,6 +1,6 @@
 # app.py
 
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, send_from_directory,url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
@@ -24,11 +24,32 @@ class Car(db.Model):
 
 # API Endpoints
 
+from flask import url_for
+
+# ... (existing code) ...
+app.config['UPLOAD_FOLDER'] = 'uploads'
 @app.route('/api/cars', methods=['GET'])
 def get_all_cars():
     cars = Car.query.all()
-    print(cars)
-    return jsonify({'cars': [{'id': car.id, 'color': car.color, 'model': car.model, 'image': car.image} for car in cars]})
+    car_list = []
+
+    for car in cars:
+        car_data = {
+            'id': car.id,
+            'color': car.color,
+            'model': car.model,
+            'image': url_for('get_car_image', filename=car.image) if car.image else None
+        }
+        car_list.append(car_data)
+
+    return jsonify({'cars': car_list})
+
+@app.route('/uploads/<filename>')
+def get_car_image(filename):
+    # Adjust the path based on your project structure
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
 
 @app.route('/api/cars/<int:car_id>', methods=['GET'])
 def get_car_by_id(car_id):
@@ -40,14 +61,20 @@ def get_car_by_id(car_id):
 
 @app.route('/api/cars', methods=['POST'])
 def add_car():
-    if not request.json or 'color' not in request.json or 'model' not in request.json:
+    if not request.form or 'color' not in request.form or 'model' not in request.form:
         abort(400, 'Color and model are required fields for adding a car.')
 
-    color = request.json['color']
-    model = request.json['model']
-    image = request.json.get('image', None)
-    print(color)
-    new_car = Car(color=color, model=model, image=image)
+    color = request.form['color']
+    model = request.form['model']
+    image = request.files.get('image', None)
+
+    # Validate file type, size, etc., if needed
+
+    # Save the image to the server, you may need to adjust the path
+    if image:
+        image.save(f'uploads/{image.filename}')
+
+    new_car = Car(color=color, model=model, image=image.filename if image else None)
     db.session.add(new_car)
     db.session.commit()
 

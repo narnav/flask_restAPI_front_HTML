@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -8,168 +9,182 @@
     <!-- Include Axios library -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
+
 <body>
 
-<h1>Garage Management</h1>
+    <h1>Garage Management</h1>
 
-<!-- Form to add a new car -->
-<h2>Add New Car</h2>
-<form id="addCarForm">
-    <label for="color">Color:</label>
-    <input type="text" id="color" name="color" required>
-    <br>
-    <label for="model">Model:</label>
-    <input type="text" id="model" name="model" required>
-    <br>
-    <label for="image">Image URL:</label>
-    <input type="text" id="image" name="image">
-    <br>
-    <button type="button" onclick="addCar()">Add Car</button>
-</form>
+    <!-- Form to add a new car -->
+    <h2>Add New Car</h2>
+    <form id="addCarForm" enctype="multipart/form-data">
+        <label for="color">Color:</label>
+        <input type="text" id="color" name="color" required>
+        <br>
+        <label for="model">Model:</label>
+        <input type="text" id="model" name="model" required>
+        <br>
+        <label for="image">Image:</label>
+        <input type="file" id="image" name="image">
+        <br>
+        <button type="button" onclick="addCar()">Add Car</button>
+    </form>
 
-<!-- Table to display existing cars -->
-<h2>Existing Cars</h2>
-<table border="1">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Color</th>
-            <th>Model</th>
-            <th>Image</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody id="carTableBody"></tbody>
-</table>
-<h2>Update Car</h2>
-<form id="updateCarForm" style="display: none;">
-    <label for="updateColor">Color:</label>
-    <input type="text" id="updateColor" name="updateColor" required>
-    <br>
-    <label for="updateModel">Model:</label>
-    <input type="text" id="updateModel" name="updateModel" required>
-    <br>
-    <label for="updateImage">Image URL:</label>
-    <input type="text" id="updateImage" name="updateImage">
-    <br>
-    <button type="button" onclick="submitUpdate()">Update Car</button>
-    <button type="button" onclick="cancelUpdate()">Cancel</button>
-</form>
-<script>
-    // Function to fetch and display cars
-    function fetchCars() {
-        axios.get('http://localhost:5000/api/cars')
-            .then(response => {
-                const cars = response.data.cars;
-                console.log(cars);
-                const carTableBody = document.getElementById('carTableBody');
-                carTableBody.innerHTML = '';
+    <!-- Table to display existing cars -->
+    <h2>Existing Cars</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Color</th>
+                <th>Model</th>
+                <th>Image</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="carTableBody"></tbody>
+    </table>
+    <h2>Update Car</h2>
+    <form id="updateCarForm" style="display: none;">
+        <label for="updateColor">Color:</label>
+        <input type="text" id="updateColor" name="updateColor" required>
+        <br>
+        <label for="updateModel">Model:</label>
+        <input type="text" id="updateModel" name="updateModel" required>
+        <br>
+        <label for="updateImage">Image URL:</label>
+        <input type="text" id="updateImage" name="updateImage">
+        <br>
+        <button type="button" onclick="submitUpdate()">Update Car</button>
+        <button type="button" onclick="cancelUpdate()">Cancel</button>
+    </form>
+    <script>
+        // Function to fetch and display cars
+        function fetchCars() {
+            axios.get('http://localhost:5000/api/cars')
+                .then(response => {
+                    const cars = response.data.cars;
+                    console.log(cars);
+                    const carTableBody = document.getElementById('carTableBody');
+                    carTableBody.innerHTML = '';
 
-                cars.forEach(car => {
-                    console.log(car[1]);
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
+                    cars.forEach(car => {
+                        console.log(car[1]);
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
                         <td>${car['id']}</td>
                         <td>${car['color']}</td>
                         <td>${car['model']}</td>
-                        <td>${car['image'] || 'N/A'}</td>
+                        <td><img src='http://localhost:5000/${car['image'] || 'N/A'}'></td>
+
                         <td>
                             <button onclick="updateCar(${car['id']})">Update</button>
                             <button onclick="deleteCar(${car['id']})">Delete</button>
                         </td>
                     `;
-                    // console.log(row);
-                    carTableBody.appendChild(row);
+                        // console.log(row);
+                        carTableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching cars:', error);
                 });
+        }
+
+        // Function to add a new car
+        // Function to add a new car
+        function addCar() {
+            const color = document.getElementById('color').value;
+            const model = document.getElementById('model').value;
+            const imageInput = document.getElementById('image');
+
+            const formData = new FormData();
+            formData.append('color', color);
+            formData.append('model', model);
+            formData.append('image', imageInput.files[0]);
+
+            axios.post('http://localhost:5000/api/cars', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
             })
-            .catch(error => {
-                console.error('Error fetching cars:', error);
-            });
-    }
+                .then(response => {
+                    console.log(response.data.message);
+                    // Refresh the car list after adding
+                    fetchCars();
+                })
+                .catch(error => {
+                    console.error('Error adding car:', error);
+                });
+        }
 
-    // Function to add a new car
-    function addCar() {
-        const color = document.getElementById('color').value;
-        const model = document.getElementById('model').value;
-        const image = document.getElementById('image').value;
 
-        axios.post('http://localhost:5000/api/cars', { color, model, image })
-            .then(response => {
-                console.log(response.data.message);
-                // Refresh the car list after adding
-                fetchCars();
-            })
-            .catch(error => {
-                console.error('Error adding car:', error);
-            });
-    }
+        // Function to update a car
+        // Function to update a car
+        let updateCarId = -1
+        function updateCar(carId) {
+            const updateForm = document.getElementById('updateCarForm');
+            updateForm.style.display = 'block';
+            console.log(carId);
+            // Fetch car details by ID
+            axios.get(`http://localhost:5000/api/cars/${carId}`)
+                .then(response => {
+                    const car = response.data.car;
 
-    // Function to update a car
-  // Function to update a car
-  let updateCarId=-1
-  function updateCar(carId) {
-        const updateForm = document.getElementById('updateCarForm');
-        updateForm.style.display = 'block';
-        console.log(carId);
-        // Fetch car details by ID
-        axios.get(`http://localhost:5000/api/cars/${carId}`)
-            .then(response => {
-                const car = response.data.car;
+                    // Populate the update form with existing details
+                    updateCarId = car['id']
 
-                // Populate the update form with existing details
-                updateCarId=car['id']
+                    document.getElementById('updateColor').value = car['color'];
+                    document.getElementById('updateModel').value = car['model'];
+                    document.getElementById('updateImage').value = car['image'] || '';
+                })
+                .catch(error => {
+                    console.error('Error fetching car details:', error);
+                });
+        }
 
-                document.getElementById('updateColor').value = car['color'];
-                document.getElementById('updateModel').value = car['model'];
-                document.getElementById('updateImage').value = car['image'] || '';
-            })
-            .catch(error => {
-                console.error('Error fetching car details:', error);
-            });
-    }
+        // Function to submit the update form
+        function submitUpdate() {
+            const carId = updateCarId /* Get car ID from somewhere */
+            const color = document.getElementById('updateColor').value;
+            const model = document.getElementById('updateModel').value;
+            const image = document.getElementById('updateImage').value;
 
-    // Function to submit the update form
-    function submitUpdate() {
-        const carId =updateCarId /* Get car ID from somewhere */
-        const color = document.getElementById('updateColor').value;
-        const model = document.getElementById('updateModel').value;
-        const image = document.getElementById('updateImage').value;
+            // Make a PUT request to update the car details
+            axios.put(`http://localhost:5000/api/cars/${carId}`, { color, model, image })
+                .then(response => {
+                    console.log(response.data.message);
+                    // Hide the update form after updating
+                    document.getElementById('updateCarForm').style.display = 'none';
+                    // Refresh the car list after updating
+                    fetchCars();
+                })
+                .catch(error => {
+                    console.error('Error updating car:', error);
+                });
+        }
 
-        // Make a PUT request to update the car details
-        axios.put(`http://localhost:5000/api/cars/${carId}`, { color, model, image })
-            .then(response => {
-                console.log(response.data.message);
-                // Hide the update form after updating
-                document.getElementById('updateCarForm').style.display = 'none';
-                // Refresh the car list after updating
-                fetchCars();
-            })
-            .catch(error => {
-                console.error('Error updating car:', error);
-            });
-    }
+        // Function to cancel the update and hide the form
+        function cancelUpdate() {
+            document.getElementById('updateCarForm').style.display = 'none';
+        }
 
-    // Function to cancel the update and hide the form
-    function cancelUpdate() {
-        document.getElementById('updateCarForm').style.display = 'none';
-    }
+        // Function to delete a car
+        function deleteCar(carId) {
+            axios.delete(`http://localhost:5000/api/cars/${carId}`)
+                .then(response => {
+                    console.log(response.data.message);
+                    // Refresh the car list after deleting
+                    fetchCars();
+                })
+                .catch(error => {
+                    console.error('Error deleting car:', error);
+                });
+        }
 
-    // Function to delete a car
-    function deleteCar(carId) {
-        axios.delete(`http://localhost:5000/api/cars/${carId}`)
-            .then(response => {
-                console.log(response.data.message);
-                // Refresh the car list after deleting
-                fetchCars();
-            })
-            .catch(error => {
-                console.error('Error deleting car:', error);
-            });
-    }
-
-    // Initial fetch of cars when the page loads
-    fetchCars();
-</script>
+        // Initial fetch of cars when the page loads
+        fetchCars();
+    </script>
 
 </body>
+
 </html>
